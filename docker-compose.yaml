@@ -1,0 +1,22 @@
+services:
+  qbittorrent:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        ARCH: linux/arm64
+    ports:
+      - "8080:8080" # Web UI port
+      - "6881:6881" # TCP port for torrents
+      - "6881:6881/udp" # UDP port for torrents
+    volumes:
+      - ./config:/config # Persistent configuration storage
+      - ./downloads:/downloads # Download location
+    environment:
+      - PUID=1000 # Your user ID
+      - PGID=1000 # Your group ID
+      - WEBUI_PORT=8080 # Default web UI port
+
+volumes:
+  config:
+  downloads:
