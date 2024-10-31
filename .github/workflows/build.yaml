@@ -2,6 +2,8 @@ name: ci
 
 on:
   push:
+    branches:
+      - main
 
 env:
   REGISTRY_IMAGE: ghcr.io/apocalypsor/qbittorrentee
@@ -16,10 +18,14 @@ jobs:
           - linux/amd64
           - linux/arm64
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Prepare
         run: |
           platform=${{ matrix.platform }}
           echo "PLATFORM_PAIR=${platform//\//-}" >> $GITHUB_ENV
+          echo "QB_VERSION=$(cat version)" >> $GITHUB_ENV
 
       - name: Docker meta
         id: meta
@@ -51,7 +57,9 @@ jobs:
           platforms: ${{ matrix.platform }}
           labels: ${{ steps.meta.outputs.labels }}
           outputs: type=image,name=${{ env.REGISTRY_IMAGE }},push-by-digest=true,name-canonical=true,push=true
-          build-args: ARCH=${{ matrix.platform }}
+          build-args: |
+            ARCH=${{ matrix.platform }}
+            QB_VERSION=${{ env.QB_VERSION }}
 
       - name: Export digest
         run: |
@@ -72,6 +80,13 @@ jobs:
     needs:
       - build
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Prepare
+        run: |
+          echo "QB_VERSION=$(cat version)" >> $GITHUB_ENV
+
       - name: Download digests
         uses: actions/download-artifact@v4
         with:
@@ -103,6 +118,7 @@ jobs:
           done
           docker buildx imagetools create "${digests[@]}" \
             -t ${{ env.REGISTRY_IMAGE }}:${{ steps.meta.outputs.version }} \
+            -t ${{ env.REGISTRY_IMAGE }}:${{ env.QB_VERSION }} \
             -t ${{ env.REGISTRY_IMAGE }}:latest
 
       - name: Inspect image

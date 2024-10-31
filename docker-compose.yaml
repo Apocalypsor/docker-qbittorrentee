@@ -5,6 +5,7 @@ services:
       dockerfile: Dockerfile
       args:
         ARCH: linux/arm64
+        QB_VERSION: 5.0.0.10
     ports:
       - "8080:8080" # Web UI port
       - "6881:6881" # TCP port for torrents

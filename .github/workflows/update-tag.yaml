@@ -1,0 +1,46 @@
+name: update
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 21 * * *"
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GHCR_TOKEN }}
+
+      - name: Set Version
+        id: set-version
+        run: |
+          TAG=$(wget --no-check-certificate -qO- https://api.github.com/repos/c0re100/qBittorrent-Enhanced-Edition/tags | grep 'name' | cut -d\" -f4 | head -1 | cut -c 9- )
+
+          OnlineReleaseTag=${TAG}
+          LocalReleaseTag=$(cat version | head -n1)
+
+          echo "LocalReleaseTag=${LocalReleaseTag}"
+          echo "OnlineReleaseTag=${TAG}"
+
+          if [ "${LocalReleaseTag}" != "${OnlineReleaseTag}" ]
+          then
+             echo "::set-output name=version::${TAG}"
+             echo "::set-output name=status::success"
+          fi
+
+      - name: Update ReleaseTag
+        if: steps.set-version.outputs.status == 'success'
+        run: |
+          echo ${{ steps.set-version.outputs.version }} > ./version
+
+      - name: Push
+        uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          commit_message: Update to version ${{ steps.set-version.outputs.version }}
+          skip_dirty_check: false
+          commit_user_name: Action Bot
+          commit_user_email: 41898282+github-actions[bot]@users.noreply.github.com
+          commit_author: Action <actions@github.com>
