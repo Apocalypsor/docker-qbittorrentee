@@ -17,18 +17,21 @@ jobs:
       - name: Set Version
         id: set-version
         run: |
-          TAG=$(wget --no-check-certificate -qO- https://api.github.com/repos/c0re100/qBittorrent-Enhanced-Edition/tags | grep 'name' | cut -d\" -f4 | head -1 | cut -c 9- )
-
+          TAG=$(wget --no-check-certificate -qO- https://api.github.com/repos/c0re100/qBittorrent-Enhanced-Edition/tags | grep 'name' | head -1 | cut -d\" -f4 | sed 's/[^0-9.]*//g')
           OnlineReleaseTag=${TAG}
           LocalReleaseTag=$(cat version | head -n1)
 
           echo "LocalReleaseTag=${LocalReleaseTag}"
           echo "OnlineReleaseTag=${TAG}"
 
-          if [ "${LocalReleaseTag}" != "${OnlineReleaseTag}" ]
-          then
-             echo "::set-output name=version::${TAG}"
-             echo "::set-output name=status::success"
+          if [ -n "$OnlineReleaseTag" ] && [ "$LocalReleaseTag" != "$OnlineReleaseTag" ]; then
+              echo "::set-output name=version::${OnlineReleaseTag}"
+              echo "::set-output name=status::success"
+          elif [ -z "$OnlineReleaseTag" ]; then
+              echo "错误：未能获取到远程版本号（TAG 为空）"
+              exit 1
+          else
+              echo "版本已是最新，跳过更新。"
           fi
 
       - name: Update ReleaseTag
